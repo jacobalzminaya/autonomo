@@ -1,4 +1,5 @@
-// --- ORQUESTADOR PRINCIPAL ---
+// main.js - Orquestador Único del Tiempo y Seguridad Adaptado
+
 window.addEventListener('DOMContentLoaded', () => {
     loadConfig();
     initCanvas(); 
@@ -70,12 +71,23 @@ function initCanvas() {
     canvas.getContext('2d').scale(dpr, dpr);
 }
 
-// main.js - Orquestador Único del Tiempo
 function triggerSignal(side, strength) {
     if (isSignalActive) return;
     
     isSignalActive = true;
     signalCooldown = true;
+
+    // --- ACTIVACIÓN VISUAL DE BOTONES FEEDBACK ---
+    const winBtn = document.getElementById('winBtn');
+    const lossBtn = document.getElementById('lossBtn');
+    if(winBtn && lossBtn) {
+        winBtn.style.opacity = "1";
+        winBtn.style.filter = "none";
+        winBtn.disabled = false;
+        lossBtn.style.opacity = "1";
+        lossBtn.style.filter = "none";
+        lossBtn.disabled = false;
+    }
 
     const statusMsg = document.getElementById('op-status');
     const timerEl = document.getElementById('op-timer');
@@ -128,10 +140,17 @@ function resetUI(fullReset = true) {
     isSignalActive = false;
     signalCooldown = false;
     
-    const btnWin = document.getElementById('btn-win'); 
-    const btnLoss = document.getElementById('btn-loss');
-    if(btnWin) btnWin.classList.remove('active');
-    if(btnLoss) btnLoss.classList.remove('active');
+    // --- OPACAR BOTONES WIN/LOSS ---
+    const winBtn = document.getElementById('winBtn');
+    const lossBtn = document.getElementById('lossBtn');
+    if(winBtn && lossBtn) {
+        winBtn.style.opacity = "0.3";
+        winBtn.style.filter = "grayscale(1)";
+        winBtn.disabled = true;
+        lossBtn.style.opacity = "0.3";
+        lossBtn.style.filter = "grayscale(1)";
+        lossBtn.disabled = true;
+    }
 
     const terminal = document.getElementById('main-terminal');
     if(terminal) terminal.classList.remove('signal-active', 'border-up', 'border-down');
@@ -144,9 +163,6 @@ function resetUI(fullReset = true) {
         statusMsg.innerText = "SYSTEM IDLE";
         statusMsg.className = "";
     }
-
-    const btn = document.getElementById('mouseBtn');
-    if(btn) btn.disabled = false;
 
     const timerEl = document.getElementById('op-timer');
     if(timerEl) timerEl.innerText = "00";
@@ -187,7 +203,6 @@ async function logResult(win) {
     if(tradeHistory.length > 50) tradeHistory.shift(); 
     localStorage.setItem('tradeHistory', JSON.stringify(tradeHistory));
 
-    // Sesión de 30 minutos para el escudo
     const recentTrades = tradeHistory.filter(t => (timestamp - (t.time || 0)) < (30 * 60 * 1000));
     const recentLossesInSession = recentTrades.filter(t => t.win === false).length;
 
@@ -231,7 +246,7 @@ async function logResult(win) {
     }
     
     updateStats();
-    resetUI(false);
+    resetUI(false); // Esta llamada ahora opaca los botones correctamente
     if (typeof updateHourlyIntelligence === 'function') updateHourlyIntelligence();
 }
 
