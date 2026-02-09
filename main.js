@@ -218,75 +218,83 @@ function resetUI(fullReset = true) {
 
 async function logResult(win) {
     const currentTrend = typeof getMajorTrend === 'function' ? getMajorTrend() : "NEUTRAL";
-    const currentHour = new Date().getHours(); // Capturamos la hora exacta
-    
+    const now = new Date();
+    const currentHour = now.getHours();
+    const timestamp = now.getTime(); // Marca de tiempo exacta para validación
+
     // Capturamos el ruido actual para el reporte de seguridad
     const noiseEl = document.getElementById('noise-index');
     const currentNoise = noiseEl ? parseInt(noiseEl.innerText) : 0;
 
     // --- BLOQUE DE APRENDIZAJE POR HORA Y ADN ---
-    // Guardamos una "foto" del mercado para que la IA aprenda qué pasó
-    const lastSequence = sequence.slice(-5).map(s => s.val).join(''); // Captura el patrón visual
+    const lastSequence = sequence.slice(-5).map(s => s.val).join(''); 
     const eventSnapshot = {
         win: win,
         hour: currentHour,
         noise: currentNoise,
         trend: currentTrend,
         pattern: lastSequence,
-        timestamp: Date.now()
+        timestamp: timestamp // Guardamos el tiempo exacto en el log
     };
 
-    // Guardar en el almacenamiento de largo plazo (Detailed Logs)
     let detailedLogs = JSON.parse(localStorage.getItem('quantum_detailed_logs')) || [];
     detailedLogs.push(eventSnapshot);
-    if(detailedLogs.length > 100) detailedLogs.shift(); // Mantenemos los últimos 100 para no saturar
+    if(detailedLogs.length > 100) detailedLogs.shift();
     localStorage.setItem('quantum_detailed_logs', JSON.stringify(detailedLogs));
-    // --------------------------------------------
+
+    // --- ACTUALIZACIÓN DE HISTORIAL CON TIEMPO ---
+    // Guardamos el resultado con su tiempo para discriminar sesiones viejas
+    tradeHistory.push({ win: win, time: timestamp });
+    if(tradeHistory.length > 50) tradeHistory.shift(); 
+    localStorage.setItem('tradeHistory', JSON.stringify(tradeHistory));
+
+    // --- LÓGICA DE SEGURIDAD BASADA EN TIEMPO (Sesión Actual) ---
+    // Filtramos para contar solo pérdidas de los últimos 30 minutos
+    const recentTrades = tradeHistory.filter(t => (timestamp - t.time) < (30 * 60 * 1000));
+    const recentLossesInSession = recentTrades.filter(t => t.win === false).length;
 
     if (win) {
-        // Si ganamos, reseteamos el contador de pérdidas
         consecutiveLosses = 0; 
-        
         if (neuralMode && typeof NeuralCore !== 'undefined' && lastData) {
             await NeuralCore.train(lastData, win);
         }
     } else {
-        // Si perdemos, aumentamos el contador
         consecutiveLosses++;
-
-        // En la primera pérdida, guardamos qué tendencia había para comparar después
         if (consecutiveLosses === 1) {
             lastTrendAtLoss = currentTrend;
         }
 
-        // --- LÓGICA DE AUTO-APAGADO (Circuit Breaker + Escudo de Volatilidad) ---
+        // --- LÓGICA DE AUTO-APAGADO (Actualizada para validar modo activo) ---
         const isPanicNoise = typeof volatilityShield !== 'undefined' && currentNoise > volatilityShield.criticalNoise;
         
+        // El escudo solo salta si estamos en Autónomo O si la racha es real en el tiempo actual
         if (consecutiveLosses >= maxLossLimit || (autoPilotMode && isPanicNoise)) {
-            autoPilotMode = false; 
             
-            const autoBtn = document.getElementById('autoPilotBtn');
-            if (autoBtn) {
-                autoBtn.classList.remove('active');
-                autoBtn.style.background = ""; 
-                autoBtn.innerText = "MODO AUTÓNOMO (OFF)";
-            }
+            // Solo ejecutamos el apagado si realmente el piloto está activo
+            if (autoPilotMode) {
+                autoPilotMode = false; 
+                const autoBtn = document.getElementById('autoPilotBtn');
+                if (autoBtn) {
+                    autoBtn.classList.remove('active');
+                    autoBtn.style.background = ""; 
+                    autoBtn.innerText = "MODO AUTÓNOMO (OFF)";
+                }
 
-            let reason = `Se alcanzó el límite de ${maxLossLimit} pérdidas seguidas.`;
-            
-            if (isPanicNoise) {
-                reason = `RUIDO CRÍTICO DETECTADO (${currentNoise}%). El mercado está demasiado inestable para operar en automático.`;
-            } else if (lastTrendAtLoss !== currentTrend) {
-                reason = `CAMBIO DE TENDENCIA DETECTADO (${lastTrendAtLoss} ➔ ${currentTrend}). El mercado se volvió errático.`;
-            }
+                let reason = `Se alcanzó el límite de ${maxLossLimit} pérdidas seguidas.`;
+                if (isPanicNoise) {
+                    reason = `RUIDO CRÍTICO DETECTADO (${currentNoise}%). El mercado está demasiado inestable para operar en automático.`;
+                } else if (lastTrendAtLoss !== currentTrend) {
+                    reason = `CAMBIO DE TENDENCIA DETECTADO (${lastTrendAtLoss} ➔ ${currentTrend}). El mercado se volvió errático.`;
+                }
 
-            setTimeout(() => {
-                alert("⚠️ ESCUDO DE SEGURIDAD ACTIVADO\n\n" + 
-                      "Motivo: " + reason + "\n\n" +
-                      "Análisis IA: Históricamente a las " + currentHour + ":00h tienes mejor rendimiento.");
-            }, 500);
-            
-            console.warn("Seguridad: Modo Autónomo desactivado por volatilidad o límite de pérdidas.");
+                setTimeout(() => {
+                    alert("⚠️ ESCUDO DE SEGURIDAD ACTIVADO\n\n" + 
+                          "Motivo: " + reason + "\n\n" +
+                          "Análisis IA: Históricamente a las " + currentHour + ":00h tienes mejor rendimiento.");
+                }, 500);
+                
+                console.warn("Seguridad: Modo Autónomo desactivado por volatilidad o límite de pérdidas.");
+            }
         }
     }
 
@@ -295,14 +303,9 @@ async function logResult(win) {
         if(win) AICore.learn();
     }
     
-    tradeHistory.push(win);
-    if(tradeHistory.length > 50) tradeHistory.shift(); 
-    localStorage.setItem('tradeHistory', JSON.stringify(tradeHistory));
-    
     updateStats();
     resetUI(false);
     
-    // Ejecutar actualización de inteligencia horaria
     if (typeof updateHourlyIntelligence === 'function') updateHourlyIntelligence();
 }
 
@@ -331,4 +334,5 @@ if(radarOverlay) {
     }, { passive: false });
 
 }
+
 
