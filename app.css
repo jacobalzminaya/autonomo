@@ -317,7 +317,16 @@ button, .btn, .feed-btn, .touch-trigger {
     font-size: 3rem;
     border-radius: 15px;
 }
+/* Esto haría que el mensaje importante brille cuando hay una señal activa */
+#ia-report.active-signal {
+    animation: pulse-priority 1.5s infinite;
+}
 
+@keyframes pulse-priority {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
 /* Colores vibrantes para los botones de feedback */
 #winBtn {
     background-color: var(--up-neon) !important;
