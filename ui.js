@@ -27,7 +27,7 @@ function updateAnalyticUI(noise, power, ms, recent, majorTrend) {
     const term = document.getElementById('main-terminal');
     const iaLogic = document.getElementById('ia-logic');
     const iaStake = document.getElementById('ia-stake');
-    const statusMsg = document.getElementById('op-status'); // CORREGIDO: En tu HTML es 'op-status', no 'status-message'
+    const statusMsg = document.getElementById('op-status'); 
     
     // 1. Actualizar Marcadores de Telemetría (Header)
     const noiseEl = document.getElementById('noise-index');
@@ -74,8 +74,9 @@ function updateAnalyticUI(noise, power, ms, recent, majorTrend) {
     }
 
     // 3. Reporte de IA Neural (Footer info)
+    const totalOps = tradeHistory.length; // Definido fuera para usarlo en el bloqueo del botón
+
     if (iaLogic && iaStake) {
-        const totalOps = tradeHistory.length;
         const probPct = Math.round(lastNeuralPrediction * 100);
 
         if (totalOps < 10) {
@@ -88,6 +89,25 @@ function updateAnalyticUI(noise, power, ms, recent, majorTrend) {
 
             iaLogic.innerHTML = `NEURAL: <span style="color:${colorIA}">${probPct}% CONFIANZA</span>`;
             iaStake.innerText = (probPct > 75 || probPct < 25) ? "SUGERENCIA: STAKE ALTO" : "SUGERENCIA: ESPERAR";
+        }
+    }
+
+    // --- BLOQUE DE SEGURIDAD: CONTROL DEL BOTÓN AUTÓNOMO ---
+    const autoBtn = document.getElementById('autoPilotBtn');
+    if (autoBtn) {
+        if (totalOps < 10) {
+            autoBtn.disabled = true;
+            autoBtn.style.opacity = "0.5";
+            autoBtn.style.cursor = "not-allowed";
+            autoBtn.innerText = `AUTÓNOMO BLOQUEADO (${10 - totalOps})`;
+        } else {
+            autoBtn.disabled = false;
+            autoBtn.style.opacity = "1";
+            autoBtn.style.cursor = "pointer";
+            // Solo actualiza el texto si el modo no está activo para no interrumpir visualmente
+            if (typeof autoPilotMode !== 'undefined' && !autoPilotMode) {
+                autoBtn.innerText = "MODO AUTÓNOMO (READY)";
+            }
         }
     }
 
@@ -115,4 +135,5 @@ function resetUI(total) {
         document.getElementById('power-index').innerText = "POWER: 0.0";
         document.getElementById('speed-meter').innerText = "MS: 0";
     }
+
 }
