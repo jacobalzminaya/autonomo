@@ -1,4 +1,5 @@
 // --- ORQUESTADOR PRINCIPAL ---
+// --- ORQUESTADOR PRINCIPAL ---
 window.addEventListener('DOMContentLoaded', () => {
     loadConfig();
     initCanvas(); 
@@ -14,6 +15,25 @@ window.addEventListener('DOMContentLoaded', () => {
     if (tradeHistory.length < 10) {
         neuralMode = false; 
         saveConfig(); 
+    }
+
+    // --- NUEVO: BLOQUEO INICIAL DEL BOTÓN AUTÓNOMO ---
+    // Esto asegura que el botón aparezca deshabilitado apenas abre la app si no hay suficiente data
+    const autoBtn = document.getElementById('autoPilotBtn');
+    if (autoBtn) {
+        if (tradeHistory.length < 10) {
+            autoBtn.disabled = true;
+            autoBtn.style.opacity = "0.5";
+            autoBtn.style.cursor = "not-allowed";
+            autoBtn.innerText = `AUTÓNOMO BLOQUEADO (${10 - tradeHistory.length})`;
+        } else {
+            autoBtn.disabled = false;
+            autoBtn.style.opacity = "1";
+            autoBtn.style.cursor = "pointer";
+            if (typeof autoPilotMode !== 'undefined' && !autoPilotMode) {
+                autoBtn.innerText = "MODO AUTÓNOMO (READY)";
+            }
+        }
     }
 
     // Sincronización visual de botones de configuración
@@ -311,3 +331,4 @@ if(radarOverlay) {
     }, { passive: false });
 
 }
+
