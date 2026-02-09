@@ -128,12 +128,29 @@ function resetUI(total) {
     const statusMsg = document.getElementById('op-status');
     if(statusMsg) {
         statusMsg.innerText = total ? "SISTEMA STANDBY" : "ESPERANDO SEÑAL";
-        statusMsg.style.color = "var(--text-dim)";
-    }
-    if(total) {
-        document.getElementById('noise-index').innerText = "NOISE: 0%";
-        document.getElementById('power-index').innerText = "POWER: 0.0";
-        document.getElementById('speed-meter').innerText = "MS: 0";
     }
 
+    // Forzar el estado "apagado" de los botones de feedback
+    const winBtn = document.getElementById('winBtn');
+    const lossBtn = document.getElementById('lossBtn');
+    
+    if (winBtn && lossBtn) {
+        // Quitamos la clase de brillo
+        winBtn.classList.remove('active');
+        lossBtn.classList.remove('active');
+        
+        // Aplicamos opacidad baja y gris para que se vea claramente que están inactivos
+        winBtn.style.opacity = "0.3";
+        winBtn.style.filter = "grayscale(1)";
+        lossBtn.style.opacity = "0.3";
+        lossBtn.style.filter = "grayscale(1)";
+        
+        // Deshabilitamos el click para evitar registros dobles
+        winBtn.disabled = true;
+        lossBtn.disabled = true;
+    }
+
+    const timerText = document.getElementById('timer-text');
+    if(timerText) timerText.innerText = "00";
 }
+
