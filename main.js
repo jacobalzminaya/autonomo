@@ -310,7 +310,14 @@ async function logResult(win) {
 }
 
 function updateStats() {
-    const wins = tradeHistory.filter(x => x).length;
+    // MODIFICADO: Ahora extraemos .win si x es un objeto, manteniendo compatibilidad
+    const wins = tradeHistory.filter(x => {
+        if (typeof x === 'object' && x !== null) {
+            return x.win === true;
+        }
+        return x === true; // Soporte para historial antiguo
+    }).length;
+
     const total = tradeHistory.length;
     const totalEl = document.getElementById('stat-total');
     const winRateEl = document.getElementById('stat-winrate');
@@ -323,6 +330,10 @@ const radarOverlay = document.getElementById('mouse-overlay');
 if(radarOverlay) {
     radarOverlay.addEventListener('mousedown', (e) => {
         e.preventDefault();
+        
+        // --- NUEVA PROTECCIÓN: Bloquear entrada si hay señal activa o cooldown ---
+        if (isSignalActive || (typeof signalCooldown !== 'undefined' && signalCooldown)) return;
+
         if (e.button === 0) registerInput('A');
         else if (e.button === 2) registerInput('B');
     });
@@ -330,9 +341,12 @@ if(radarOverlay) {
     radarOverlay.addEventListener('contextmenu', e => e.preventDefault());
     
     radarOverlay.addEventListener('touchstart', (e) => {
+        // --- NUEVA PROTECCIÓN PARA TOUCH ---
+        if (isSignalActive || (typeof signalCooldown !== 'undefined' && signalCooldown)) {
+            e.preventDefault();
+            return;
+        }
+        
         if (e.touches.length > 1) e.preventDefault();
     }, { passive: false });
-
 }
-
-
