@@ -161,6 +161,14 @@ function resetUI(fullReset = true) {
     isSignalActive = false;
     signalCooldown = false;
     
+    // --- NUEVO: Limpieza de botones Win/Loss ---
+    // Esto asegura que al marcar resultado, los botones dejen de brillar
+    const btnWin = document.getElementById('btn-win'); 
+    const btnLoss = document.getElementById('btn-loss');
+    if(btnWin) btnWin.classList.remove('active');
+    if(btnLoss) btnLoss.classList.remove('active');
+    // ------------------------------------------
+
     const terminal = document.getElementById('main-terminal');
     if(terminal) terminal.classList.remove('signal-active', 'border-up', 'border-down');
     
@@ -301,4 +309,5 @@ if(radarOverlay) {
     radarOverlay.addEventListener('touchstart', (e) => {
         if (e.touches.length > 1) e.preventDefault();
     }, { passive: false });
+
 }
